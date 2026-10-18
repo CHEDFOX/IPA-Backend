@@ -25,60 +25,24 @@ npm run seed                # optional: sample listings with placeholder photos
 npm test
 ```
 
-## Deploy on a VPS
+## Deploy
 
-You need a domain for the API, e.g. `api.yourdomain.com`, pointing at the VPS.
-
-### Option A — Docker (simplest)
+The backend runs on your VPS with Docker; Caddy in front of it gets the HTTPS certificate
+automatically. The website runs on Vercel. **[DEPLOY.md](DEPLOY.md)** walks through both, step by
+step, including DNS, backups and troubleshooting. In short:
 
 ```bash
 git clone https://github.com/CHEDFOX/IPA-Backend.git /opt/ipa-backend
 cd /opt/ipa-backend
-cp .env.example .env && nano .env      # set ADMIN_PASSWORD, PUBLIC_URL, SITE_URL, REVALIDATE_SECRET
-docker compose up -d --build
+cp .env.example .env && nano .env      # API_DOMAIN, ADMIN_PASSWORD, PUBLIC_URL, SITE_URL, REVALIDATE_SECRET
+docker compose up -d --build           # backend + Caddy (HTTPS)
 ```
 
-The container listens on `127.0.0.1:4000`. Put nginx or Caddy in front for HTTPS (below).
-Your data lives in `/opt/ipa-backend/data`.
+Then open `https://api.yourdomain.com/admin`. Update with
+`git pull && docker compose up -d --build`; back up with
+`docker compose exec -T backend node scripts/backup.js` plus a copy of the `data/media` folder.
 
-### Option B — Node.js directly
-
-```bash
-sudo apt install -y nodejs ffmpeg      # Node.js 22 or newer
-git clone https://github.com/CHEDFOX/IPA-Backend.git /opt/ipa-backend
-cd /opt/ipa-backend && npm ci --omit=dev
-cp .env.example .env && nano .env
-sudo useradd --system ipa && sudo chown -R ipa /opt/ipa-backend
-sudo cp deploy/ipa-backend.service /etc/systemd/system/
-sudo systemctl enable --now ipa-backend
-```
-
-### HTTPS in front
-
-- **nginx**: copy `deploy/nginx.conf`, change the domain and paths, then run
-  `certbot --nginx -d api.yourdomain.com`. It serves `/media` straight from disk and allows 1 GB uploads.
-- **Caddy**: use `deploy/Caddyfile`; certificates are automatic.
-
-Then open `https://api.yourdomain.com/admin` and sign in with `ADMIN_PASSWORD`.
-
-### Updating
-
-```bash
-cd /opt/ipa-backend && git pull
-docker compose up -d --build            # or: npm ci --omit=dev && sudo systemctl restart ipa-backend
-```
-
-Database changes are applied automatically on start.
-
-### Backups
-
-Everything is in the `data` folder: `ipa.db` (listings, settings, enquiries) and `media/`
-(photos and videos). Back up the whole folder, for example nightly:
-
-```bash
-sqlite3 /opt/ipa-backend/data/ipa.db ".backup '/backups/ipa-$(date +%F).db'"
-rsync -a /opt/ipa-backend/data/media/ /backups/media/
-```
+Without Docker: `deploy/ipa-backend.service` (systemd) with `deploy/nginx.conf` (nginx + certbot).
 
 ## Settings (`.env`)
 

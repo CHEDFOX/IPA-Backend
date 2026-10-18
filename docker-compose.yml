@@ -1,3 +1,8 @@
+# Backend + Caddy (automatic HTTPS) on a fresh VPS:
+#     docker compose up -d
+# Already running nginx on ports 80/443? Start only the backend and use deploy/nginx.conf:
+#     docker compose up -d backend
+
 services:
   backend:
     build: .
@@ -10,6 +15,27 @@ services:
       TRUST_PROXY: loopback, uniquelocal
     volumes:
       - ./data:/data
-    # Only reachable from the VPS itself; nginx or Caddy handles HTTPS in front.
+    # Reachable only from the VPS itself (for nginx); Caddy talks to it over Docker's network.
     ports:
       - "127.0.0.1:4000:4000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env, e.g. api.yourdomain.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/media:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
