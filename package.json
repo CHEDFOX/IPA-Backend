@@ -1,0 +1,25 @@
+{
+  "name": "ipa-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API, media server and admin panel for the IPA real estate & land portfolio site.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "seed": "node --env-file-if-exists=.env scripts/seed.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.3.0",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.1.6",
+    "qrcode": "1.5",
+    "sharp": "^0.35.5"
+  }
+}

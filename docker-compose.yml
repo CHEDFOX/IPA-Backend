@@ -1,0 +1,15 @@
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATA_DIR: /data
+      TRUST_PROXY: loopback, uniquelocal
+    volumes:
+      - ./data:/data
+    # Only reachable from the VPS itself; nginx or Caddy handles HTTPS in front.
+    ports:
+      - "127.0.0.1:4000:4000"

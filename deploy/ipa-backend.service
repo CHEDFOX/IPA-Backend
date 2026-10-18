@@ -1,0 +1,19 @@
+# systemd unit for running without Docker.
+# Copy to /etc/systemd/system/ipa-backend.service, then:
+#   systemctl daemon-reload && systemctl enable --now ipa-backend
+[Unit]
+Description=IPA backend (API, media, admin)
+After=network.target
+
+[Service]
+Type=simple
+User=ipa
+WorkingDirectory=/opt/ipa-backend
+EnvironmentFile=/opt/ipa-backend/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
