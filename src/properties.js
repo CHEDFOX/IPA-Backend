@@ -3,7 +3,8 @@ import { HttpError, randomToken, slugify } from './util.js';
 export const TYPES = ['land', 'residential', 'commercial'];
 export const STATUSES = ['available', 'under_offer', 'sold'];
 export const VISIBILITIES = ['public', 'unlisted', 'draft'];
-export const AREA_UNITS = ['m2', 'ha', 'acre', 'sqft'];
+// sqyd = square yards (gaj); bigha differs by state, so it is never converted.
+export const AREA_UNITS = ['m2', 'ha', 'acre', 'sqft', 'sqyd', 'bigha'];
 
 const text = (max, { required = false } = {}) => (value, field) => {
   const s = String(value ?? '').trim();
@@ -54,6 +55,7 @@ const rows = (shape, maxRows) => (value, field) => {
 // API field name -> column and parser. Updates may send any subset.
 const FIELDS = {
   title: ['title', text(160, { required: true })],
+  titleHi: ['title_hi', text(160)],
   type: ['type', oneOf(TYPES)],
   status: ['status', oneOf(STATUSES)],
   visibility: ['visibility', oneOf(VISIBILITIES)],
@@ -62,7 +64,9 @@ const FIELDS = {
   price: ['price', number({ min: 0 })],
   priceNote: ['price_note', text(60)],
   location: ['location', text(80)],
+  locationHi: ['location_hi', text(80)],
   address: ['address', text(200)],
+  addressHi: ['address_hi', text(200)],
   latitude: ['latitude', number({ min: -90, max: 90 })],
   longitude: ['longitude', number({ min: -180, max: 180 })],
   area: ['area', number({ min: 0, exclusiveMin: true })],
@@ -70,9 +74,11 @@ const FIELDS = {
   bedrooms: ['bedrooms', number({ min: 0, max: 999, integer: true })],
   bathrooms: ['bathrooms', number({ min: 0, max: 999, integer: true })],
   summary: ['summary', text(200)],
+  summaryHi: ['summary_hi', text(200)],
   description: ['description', text(20000)],
-  details: ['details', rows({ label: 60, value: 200, key: 'bool' }, 40)],
-  nearby: ['nearby', rows({ place: 80, distance: 40 }, 20)],
+  descriptionHi: ['description_hi', text(20000)],
+  details: ['details', rows({ label: 60, value: 200, labelHi: 60, valueHi: 200, key: 'bool' }, 40)],
+  nearby: ['nearby', rows({ place: 80, placeHi: 80, distance: 40 }, 20)],
 };
 
 export function normalizeProperty(body) {

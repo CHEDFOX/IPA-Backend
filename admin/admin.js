@@ -7,12 +7,31 @@ const VISIBILITY = {
   unlisted: { label: 'Private link', help: 'Hidden from the site. Only people you send the private link to can open it.' },
   draft: { label: 'Draft', help: 'Hidden. You can still preview it with the private link.' },
 };
-const UNITS = { m2: 'm²', ha: 'hectares', acre: 'acres', sqft: 'sq ft' };
+const UNITS = { sqft: 'sq ft', sqyd: 'sq yards (gaj)', acre: 'acres', bigha: 'bigha', ha: 'hectares', m2: 'm²' };
 const SUGGESTED_DETAILS = {
   land: [['Plot number', false], ['Dimensions', false], ['Zoning', true], ['Title', true], ['Road access', true], ['Utilities', false], ['Terrain', false]],
   residential: [['Built area', true], ['Plot area', false], ['Floors', false], ['Year built', false], ['Parking', true], ['Furnishing', false], ['Title', false]],
   commercial: [['Floor area', true], ['Floors', false], ['Parking', true], ['Zoning', true], ['Current use', false], ['Title', false]],
 };
+// Hindi for the suggested detail labels, so the Hindi site is translated even if left alone.
+const LABELS_HI = {
+  'Plot number': 'प्लॉट नंबर',
+  Dimensions: 'माप',
+  Zoning: 'ज़ोनिंग',
+  Title: 'मालिकाना हक़',
+  'Road access': 'सड़क तक पहुँच',
+  Utilities: 'बिजली-पानी',
+  Terrain: 'ज़मीन की बनावट',
+  'Built area': 'निर्मित क्षेत्र',
+  'Plot area': 'प्लॉट क्षेत्र',
+  Floors: 'मंज़िलें',
+  'Year built': 'निर्माण वर्ष',
+  Parking: 'पार्किंग',
+  Furnishing: 'फ़र्निशिंग',
+  'Floor area': 'फ़्लोर एरिया',
+  'Current use': 'मौजूदा उपयोग',
+};
+const suggestedRow = ([label, key]) => ({ label, value: '', labelHi: LABELS_HI[label] || '', valueHi: '', key });
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'SAR', 'QAR', 'KWD', 'OMR', 'BHD', 'EGP', 'MAD', 'TRY', 'INR', 'PKR', 'NGN', 'KES', 'ZAR', 'CAD', 'AUD'];
 
 // ---------- helpers
@@ -43,6 +62,8 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const mount = (el, content) => {
   el.innerHTML = part(content);
 };
+// Marks the optional Hindi version of a field.
+const HI = new Html('<span class="tag-hi" lang="hi">हिन्दी</span>');
 
 const svg = (paths, size = 16) =>
   new Html(
@@ -450,7 +471,8 @@ function newPropertyDialog() {
       const created = await api('POST', '/api/admin/properties', {
         title: form.elements.title.value,
         type,
-        details: SUGGESTED_DETAILS[type].map(([label, key]) => ({ label, value: '', key })),
+        areaUnit: 'sqft',
+        details: SUGGESTED_DETAILS[type].map(suggestedRow),
       });
       dialog.close();
       location.hash = `#/properties/${created.id}`;
@@ -509,7 +531,11 @@ async function viewEditor(view, id) {
             <section class="panel">
               <div class="panel-head"><h2>Basics</h2></div>
               <div class="grid">
-                ${field('Title', html`<input class="input" name="title" value="${p.title}" maxlength="160" required>`)}
+                <p class="hint">Boxes marked ${HI} are optional. Anything left empty shows the English text on the Hindi site.</p>
+                <div class="grid grid-2">
+                  ${field('Title', html`<input class="input" name="title" value="${p.title}" maxlength="160" required>`)}
+                  ${field(html`Title ${HI}`, html`<input class="input" name="titleHi" lang="hi" value="${p.titleHi ?? ''}" maxlength="160">`)}
+                </div>
                 <div class="grid grid-2">
                   ${field('Type', html`<select class="select" name="type">${options(TYPE_LABELS, p.type)}</select>`)}
                   ${field(
@@ -523,6 +549,7 @@ async function viewEditor(view, id) {
                   html`<input class="input" name="summary" value="${p.summary}" maxlength="200" placeholder="e.g. Level 2.4 ha plot with 120 m road frontage, freehold">`,
                   'One line shown on cards and in link previews in WhatsApp and other apps.',
                 )}
+                ${field(html`Summary ${HI}`, html`<input class="input" name="summaryHi" lang="hi" value="${p.summaryHi ?? ''}" maxlength="200">`)}
               </div>
             </section>
 
@@ -551,16 +578,22 @@ async function viewEditor(view, id) {
                       <datalist id="locations">${locations.map((l) => html`<option value="${l}"></option>`)}</datalist>`,
                     'Used for the location filter. Use the same spelling each time.',
                   )}
+                  ${field(html`Area name ${HI}`, html`<input class="input" name="locationHi" lang="hi" value="${p.locationHi ?? ''}" maxlength="80">`)}
                   ${field('Address', html`<input class="input" name="address" value="${p.address}" maxlength="200" placeholder="e.g. Plot 12, Block C, Valley Road">`)}
+                  ${field(html`Address ${HI}`, html`<input class="input" name="addressHi" lang="hi" value="${p.addressHi ?? ''}" maxlength="200">`)}
                 </div>
                 ${field(
-                  'Google Maps link',
-                  html`<input class="input" id="map-link" placeholder="Paste a Google Maps link or “lat, lng”">`,
-                  html`<span id="map-hint">Fills in the coordinates below. For short links (maps.app.goo.gl), open them in your browser first and copy the full address.</span>`,
+                  'Exact location',
+                  html`<input class="input" id="map-link" placeholder="Paste a Google Maps link, “lat, lng”, or survey coordinates">`,
+                  html`<span id="map-hint">Works with Google Maps share links (maps.app.goo.gl/…), the full link from the address bar, “28.6129, 77.2295”, or degrees like 28°36'46"N 77°13'46"E. Tip: in Google Maps, press and hold the exact spot to drop a pin, then Share.</span>`,
                 )}
                 <div class="grid grid-2">
                   ${field('Latitude', html`<input class="input mono" name="latitude" value="${num(p.latitude)}" inputmode="decimal" placeholder="e.g. 25.2048">`)}
                   ${field('Longitude', html`<input class="input mono" name="longitude" value="${num(p.longitude)}" inputmode="decimal" placeholder="e.g. 55.2708">`)}
+                </div>
+                <div class="inline" id="map-check-links">
+                  <a class="hint" id="map-check" target="_blank" rel="noopener"></a>
+                  <a class="hint" id="earth-check" target="_blank" rel="noopener">Google Earth ↗</a>
                 </div>
               </div>
             </section>
@@ -571,6 +604,10 @@ async function viewEditor(view, id) {
                 'About this property',
                 html`<textarea class="textarea tall" name="description" maxlength="20000">${p.description}</textarea>`,
                 'Leave a blank line between paragraphs.',
+              )}
+              ${field(
+                html`About this property ${HI}`,
+                html`<textarea class="textarea tall" name="descriptionHi" lang="hi" maxlength="20000">${p.descriptionHi ?? ''}</textarea>`,
               )}
             </section>
 
@@ -696,15 +733,18 @@ async function viewEditor(view, id) {
       fields: (d, i) => html`
         <input class="input" data-list="details" data-i="${i}" data-k="label" value="${d.label}" maxlength="60" placeholder="e.g. Zoning" aria-label="Label ${i + 1}">
         <input class="input" data-list="details" data-i="${i}" data-k="value" value="${d.value}" maxlength="200" placeholder="e.g. Agricultural" aria-label="Value ${i + 1}">
-        <label class="check"><input type="checkbox" data-list="details" data-i="${i}" data-k="key" ${d.key ? 'checked' : ''}> Key fact</label>`,
-      blank: () => ({ label: '', value: '', key: false }),
+        <label class="check"><input type="checkbox" data-list="details" data-i="${i}" data-k="key" ${d.key ? 'checked' : ''}> Key fact</label>
+        <input class="input hi-label" lang="hi" data-list="details" data-i="${i}" data-k="labelHi" value="${d.labelHi ?? ''}" maxlength="60" placeholder="हिन्दी लेबल (optional)" aria-label="Hindi label ${i + 1}">
+        <input class="input hi-value" lang="hi" data-list="details" data-i="${i}" data-k="valueHi" value="${d.valueHi ?? ''}" maxlength="200" placeholder="हिन्दी में (optional)" aria-label="Hindi value ${i + 1}">`,
+      blank: () => ({ label: '', value: '', labelHi: '', valueHi: '', key: false }),
     },
     nearby: {
-      head: html`<div class="rows-item nearby rows-head"><span>Place</span><span>Distance</span><span></span></div>`,
+      head: html`<div class="rows-item nearby rows-head"><span>Place</span><span>Place ${HI}</span><span>Distance</span><span></span></div>`,
       fields: (n, i) => html`
         <input class="input" data-list="nearby" data-i="${i}" data-k="place" value="${n.place}" maxlength="80" placeholder="e.g. Town centre" aria-label="Place ${i + 1}">
+        <input class="input" lang="hi" data-list="nearby" data-i="${i}" data-k="placeHi" value="${n.placeHi ?? ''}" maxlength="80" placeholder="e.g. शहर का केंद्र" aria-label="Hindi place ${i + 1}">
         <input class="input" data-list="nearby" data-i="${i}" data-k="distance" value="${n.distance}" maxlength="40" placeholder="e.g. 7 km" aria-label="Distance ${i + 1}">`,
-      blank: () => ({ place: '', distance: '' }),
+      blank: () => ({ place: '', placeHi: '', distance: '' }),
     },
   };
 
@@ -755,7 +795,7 @@ async function viewEditor(view, id) {
     const have = new Set(lists.details.map((d) => d.label.trim().toLowerCase()));
     const added = SUGGESTED_DETAILS[form.elements.type.value].filter(([label]) => !have.has(label.toLowerCase()));
     if (!added.length) return toast('All suggested rows are already there');
-    lists.details.push(...added.map(([label, key]) => ({ label, value: '', key })));
+    lists.details.push(...added.map(suggestedRow));
     renderRows('details');
     setDirty(true);
   });
@@ -771,27 +811,57 @@ async function viewEditor(view, id) {
   editor.addEventListener('input', track);
   editor.addEventListener('change', track);
 
-  $('#map-link').addEventListener('input', (e) => {
-    const found = parseMapLink(e.target.value);
+  // Shows a "check on Google Maps" link for whatever coordinates are in the boxes.
+  function renderMapCheck() {
+    const lat = form.elements.latitude.value.trim();
+    const lng = form.elements.longitude.value.trim();
+    const link = $('#map-check');
+    $('#map-check-links').hidden = !(lat && lng);
+    link.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+    link.textContent = `Check ${lat}, ${lng} on Google Maps ↗`;
+    $('#earth-check').href = `https://earth.google.com/web/search/${encodeURIComponent(`${lat},${lng}`)}`;
+  }
+
+  let lookup = 0;
+  async function useLocation(text) {
     const hint = $('#map-hint');
-    if (!e.target.value.trim()) return;
+    if (!text.trim()) return;
+    const ticket = ++lookup;
+    // Full links and plain coordinates are read here; short links and survey degrees go to the server.
+    let found = parseMapLink(text);
     if (!found) {
-      hint.textContent = 'No coordinates found in that link. Try the full link from the address bar, or type “lat, lng”.';
-      return;
+      hint.textContent = 'Looking up this location…';
+      try {
+        found = await api('POST', '/api/admin/resolve-location', { input: text });
+      } catch (err) {
+        if (ticket === lookup) hint.textContent = err.message;
+        return;
+      }
     }
+    if (ticket !== lookup) return;
     form.elements.latitude.value = found.lat;
     form.elements.longitude.value = found.lng;
-    hint.textContent = `Coordinates set to ${found.lat}, ${found.lng}. Save to keep them.`;
+    hint.textContent = `Location set to ${found.lat}, ${found.lng}. Check it on the map below, then save.`;
+    renderMapCheck();
     setDirty(true);
+  }
+
+  let lookupTimer;
+  $('#map-link').addEventListener('input', (e) => {
+    clearTimeout(lookupTimer);
+    lookupTimer = setTimeout(() => useLocation(e.target.value), 400);
   });
+  for (const name of ['latitude', 'longitude']) form.elements[name].addEventListener('input', renderMapCheck);
 
   function collect() {
     const v = (name) => form.elements.namedItem(name)?.value ?? '';
     return {
       title: v('title'),
+      titleHi: v('titleHi'),
       slug: v('slug'),
       type: v('type'),
       summary: v('summary'),
+      summaryHi: v('summaryHi'),
       price: v('price'),
       priceNote: v('priceNote'),
       area: v('area'),
@@ -799,10 +869,13 @@ async function viewEditor(view, id) {
       bedrooms: v('bedrooms'),
       bathrooms: v('bathrooms'),
       location: v('location'),
+      locationHi: v('locationHi'),
       address: v('address'),
+      addressHi: v('addressHi'),
       latitude: v('latitude'),
       longitude: v('longitude'),
       description: v('description'),
+      descriptionHi: v('descriptionHi'),
       visibility: v('visibility'),
       status: v('status'),
       featured: form.elements.namedItem('featured').checked,
@@ -1062,6 +1135,7 @@ async function viewEditor(view, id) {
   });
 
   renderLinks();
+  renderMapCheck();
   renderRows('details');
   renderRows('nearby');
   renderGallery();
@@ -1150,6 +1224,8 @@ async function viewSettings(view) {
   document.title = `Settings · ${state.me.siteName}`;
   const input = (name, attrs = '', cls = 'input') => html`<input class="${cls}" name="${name}" value="${s[name]}" ${new Html(attrs)}>`;
   const area = (name, rows = 4) => html`<textarea class="textarea" name="${name}" rows="${rows}">${s[name]}</textarea>`;
+  const inputHi = (name, attrs = '') => input(name, `lang="hi" ${attrs}`);
+  const areaHi = (name, rows = 4) => html`<textarea class="textarea" name="${name}" lang="hi" rows="${rows}">${s[name] ?? ''}</textarea>`;
 
   mount(
     view,
@@ -1159,21 +1235,29 @@ async function viewSettings(view) {
           <div class="panel-head"><h2>Site</h2></div>
           <div class="grid grid-2">
             ${field('Site name', input('siteName', 'maxlength="60" required'))}
+            ${field(html`Site name ${HI}`, inputHi('siteNameHi', 'maxlength="60"'), 'Leave empty to use the same name.')}
             ${field('Tagline', input('tagline', 'maxlength="80"'), 'Shown next to the name, e.g. “Real estate & land”.')}
+            ${field(html`Tagline ${HI}`, inputHi('taglineHi', 'maxlength="80" placeholder="e.g. रियल एस्टेट और ज़मीन"'))}
             ${field(
               'Currency',
               html`${input('currency', 'maxlength="3" list="currencies"', 'input mono')}<datalist id="currencies">${CURRENCIES.map((c) => html`<option value="${c}"></option>`)}</datalist>`,
-              '3-letter code, e.g. USD, EUR, AED.',
+              'INR shows prices in lakh and crore. Other 3-letter codes (USD, AED…) show full amounts.',
             )}
             ${field('Footer note', input('footerNote', 'maxlength="200"'))}
+            ${field(html`Footer note ${HI}`, inputHi('footerNoteHi', 'maxlength="200"'))}
           </div>
         </section>
 
         <section class="panel">
           <div class="panel-head"><h2>Home page</h2></div>
           <div class="grid">
-            ${field('Headline', input('heroTitle', 'maxlength="120"'))}
-            ${field('Intro text', area('heroText', 3))}
+            <div class="grid grid-2">
+              ${field('Headline', input('heroTitle', 'maxlength="120"'))}
+              ${field(html`Headline ${HI}`, inputHi('heroTitleHi', 'maxlength="120"'))}
+              ${field('Intro text', area('heroText', 3))}
+              ${field(html`Intro text ${HI}`, areaHi('heroTextHi', 3))}
+            </div>
+            <p class="hint">Hindi boxes are optional. Left empty, the Hindi site uses a built-in Hindi version of the standard text, or your English text if you changed it.</p>
             <div class="stack"><span class="label">Large photo at the top</span><div id="slot-hero"></div><div class="queue" id="queue-hero"></div>
               <p class="hint">Optional. Without one, the cover of your first featured property is used.</p></div>
           </div>
@@ -1182,8 +1266,12 @@ async function viewSettings(view) {
         <section class="panel">
           <div class="panel-head"><h2>About you</h2><p class="hint">Leave the text empty to hide the About section.</p></div>
           <div class="grid">
-            ${field('Heading', input('aboutTitle', 'maxlength="120" placeholder="e.g. Sam Rivera, land and property advisor"'))}
-            ${field('Text', area('aboutText', 5), 'Leave a blank line between paragraphs.')}
+            <div class="grid grid-2">
+              ${field('Heading', input('aboutTitle', 'maxlength="120" placeholder="e.g. Sam Rivera, land and property advisor"'))}
+              ${field(html`Heading ${HI}`, inputHi('aboutTitleHi', 'maxlength="120"'))}
+              ${field('Text', area('aboutText', 5), 'Leave a blank line between paragraphs.')}
+              ${field(html`Text ${HI}`, areaHi('aboutTextHi', 5))}
+            </div>
             <div class="stack"><span class="label">Portrait</span><div id="slot-portrait"></div><div class="queue" id="queue-portrait"></div></div>
           </div>
         </section>
@@ -1195,8 +1283,11 @@ async function viewSettings(view) {
             ${field('Phone', input('phone', 'maxlength="40" inputmode="tel"'))}
             ${field('Email', input('email', 'maxlength="120" inputmode="email"'))}
             ${field('Office address', input('address', 'maxlength="200"'))}
+            ${field(html`Office address ${HI}`, inputHi('addressHi', 'maxlength="200"'))}
             ${field('Contact heading', input('contactTitle', 'maxlength="120"'))}
+            ${field(html`Contact heading ${HI}`, inputHi('contactTitleHi', 'maxlength="120"'))}
             ${field('Contact text', input('contactText', 'maxlength="400"'))}
+            ${field(html`Contact text ${HI}`, inputHi('contactTextHi', 'maxlength="400"'))}
             ${field('Instagram link', input('instagram', 'maxlength="200" placeholder="https://instagram.com/…"'))}
             ${field('Facebook link', input('facebook', 'maxlength="200" placeholder="https://facebook.com/…"'))}
           </div>

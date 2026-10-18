@@ -49,6 +49,7 @@ export function createSerializer(publicUrl) {
       id: row.id,
       slug: row.slug,
       title: row.title,
+      titleHi: row.title_hi,
       type: row.type,
       status: row.status,
       visibility: row.visibility,
@@ -56,11 +57,13 @@ export function createSerializer(publicUrl) {
       price: row.price,
       priceNote: row.price_note,
       location: row.location,
+      locationHi: row.location_hi,
       area: row.area,
       areaUnit: row.area_unit,
       bedrooms: row.bedrooms,
       bathrooms: row.bathrooms,
       summary: row.summary,
+      summaryHi: row.summary_hi,
       updatedAt: row.updated_at,
     };
   }
@@ -82,9 +85,11 @@ export function createSerializer(publicUrl) {
     return {
       ...common(row),
       address: row.address,
+      addressHi: row.address_hi,
       latitude: row.latitude,
       longitude: row.longitude,
       description: row.description,
+      descriptionHi: row.description_hi,
       details: parseJson(row.details, []),
       nearby: parseJson(row.nearby, []),
       cover: coverOf(gallery),

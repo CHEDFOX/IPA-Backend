@@ -8,6 +8,12 @@ The API, media server and admin panel behind the IPA real estate & land website
 - **Media**: every photo is turned into web sizes (640, 1280 and 2048 px WebP) plus a
   1200×630 JPEG for link previews in WhatsApp and other apps. Location data (GPS) is removed from
   photos and videos. Videos are repackaged so they start playing straight away, and get a poster frame.
+- **Hindi**: every listing and site text has an optional Hindi box beside the English one. Empty
+  Hindi boxes fall back to English on the Hindi site.
+- **Exact locations**: paste a Google Maps share link (short `maps.app.goo.gl` links work), the
+  full link, plain coordinates (`28.6129, 77.2295`) or survey degrees (`28°36'46"N 77°13'46"E`).
+- **Indian units and prices**: sq ft, gaj (sq yards), acres, bigha, hectares and m²; with currency
+  INR the site shows prices in lakh and crore.
 - **Public API** used by the website: listings, settings, private links and the enquiry form.
 - **Website refresh**: after each change in the admin panel the website is told to refresh, so
   edits show within seconds.
@@ -80,4 +86,6 @@ Public (used by the website):
 | POST | `/api/enquiries` | Enquiry form |
 | GET | `/media/...` | Photos, videos, PDFs |
 
-Admin endpoints live under `/api/admin` and need a signed-in session.
+Admin endpoints live under `/api/admin` and need a signed-in session. Among them,
+`POST /api/admin/resolve-location` turns a pasted location into coordinates; it only ever follows
+links on Google's own domains.

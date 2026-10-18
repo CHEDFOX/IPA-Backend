@@ -4,28 +4,38 @@ const CURRENCIES = new Set(Intl.supportedValuesOf('currency'));
 
 export const SETTINGS = {
   siteName: { default: 'IPA', max: 60 },
+  siteNameHi: { default: '', max: 60 },
   tagline: { default: 'Real estate & land', max: 80 },
+  taglineHi: { default: '', max: 80 },
   heroTitle: { default: 'Land and property, ready to view.', max: 120 },
+  heroTitleHi: { default: '', max: 120 },
   heroText: {
     default:
       'A short, curated list of plots, homes and commercial sites. Every listing has photos, video, a map and the facts that matter before you visit.',
     max: 400,
   },
+  heroTextHi: { default: '', max: 400 },
   aboutTitle: { default: '', max: 120 },
+  aboutTitleHi: { default: '', max: 120 },
   aboutText: { default: '', max: 2000 },
+  aboutTextHi: { default: '', max: 2000 },
   contactTitle: { default: 'Looking for something specific?', max: 120 },
+  contactTitleHi: { default: '', max: 120 },
   contactText: {
     default: 'Tell us the area, size and budget you have in mind, and we will send you matching listings.',
     max: 400,
   },
+  contactTextHi: { default: '', max: 400 },
   phone: { default: '', max: 40 },
   whatsapp: { default: '', max: 40 },
   email: { default: '', max: 120 },
   address: { default: '', max: 200 },
-  currency: { default: 'USD', max: 3 },
+  addressHi: { default: '', max: 200 },
+  currency: { default: 'INR', max: 3 },
   instagram: { default: '', max: 200 },
   facebook: { default: '', max: 200 },
   footerNote: { default: 'Listings are for information only and are not an offer.', max: 200 },
+  footerNoteHi: { default: '', max: 200 },
 };
 
 export function getSettings(db) {

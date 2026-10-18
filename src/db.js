@@ -78,6 +78,14 @@ const MIGRATIONS = [
     expires_at INTEGER NOT NULL
   );
   `,
+  // 2: optional Hindi text for listings
+  `
+  ALTER TABLE properties ADD COLUMN title_hi TEXT NOT NULL DEFAULT '';
+  ALTER TABLE properties ADD COLUMN summary_hi TEXT NOT NULL DEFAULT '';
+  ALTER TABLE properties ADD COLUMN description_hi TEXT NOT NULL DEFAULT '';
+  ALTER TABLE properties ADD COLUMN location_hi TEXT NOT NULL DEFAULT '';
+  ALTER TABLE properties ADD COLUMN address_hi TEXT NOT NULL DEFAULT '';
+  `,
 ];
 
 export function openDb(dataDir) {

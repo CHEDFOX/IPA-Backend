@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import QRCode from 'qrcode';
+import { resolveMapLink } from '../maplink.js';
 import { getSettings, saveSettings } from '../settings.js';
 import { HttpError, rateLimit } from '../util.js';
 
@@ -155,6 +156,27 @@ export function adminRouter({ db, repo, serializer, media, auth, config, notifie
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Disposition', `attachment; filename="${p.slug}-qr.png"`);
     res.send(png);
+  });
+
+  // Turns a pasted location (Google Maps link, short share link, "lat, lng" or degrees) into coordinates.
+  router.post('/resolve-location', async (req, res, next) => {
+    const input = String(req.body?.input ?? '').trim().slice(0, 2000);
+    if (!input) return next(new HttpError(400, 'Paste a Google Maps link or coordinates.'));
+    let found = null;
+    try {
+      found = await resolveMapLink(input);
+    } catch {
+      return next(new HttpError(502, 'Google Maps did not answer. Try again, or paste the coordinates instead.'));
+    }
+    if (!found) {
+      return next(
+        new HttpError(
+          422,
+          'No coordinates found in that. In Google Maps, press and hold the exact spot, then copy the numbers shown (like 28.6129, 77.2295) and paste them here.',
+        ),
+      );
+    }
+    res.json(found);
   });
 
   // Property media

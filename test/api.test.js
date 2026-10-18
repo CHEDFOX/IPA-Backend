@@ -204,11 +204,46 @@ describe('properties and media', () => {
     assert.equal(list.data.items[0].photoCount, 2);
     const detail = await call('GET', `/api/properties/${property.slug}`, { admin: false });
     assert.equal(detail.status, 200);
-    assert.deepEqual(detail.data.details, [{ label: 'Zoning', value: 'Agricultural', key: true }]);
+    assert.deepEqual(detail.data.details, [{ label: 'Zoning', value: 'Agricultural', labelHi: '', valueHi: '', key: true }]);
     assert.equal(detail.data.shareToken, undefined, 'private token stays private');
     const site = await call('GET', '/api/site', { admin: false });
     assert.deepEqual(site.data.locations, ['North Valley']);
     assert.equal(site.data.counts.land, 1);
+  });
+
+  test('stores optional Hindi text and Indian area units', async () => {
+    const res = await call('PUT', `/api/admin/properties/${property.id}`, {
+      body: {
+        titleHi: 'रिवरसाइड प्लॉट 12',
+        summaryHi: 'नदी के पास समतल प्लॉट',
+        descriptionHi: 'पहला पैराग्राफ़',
+        locationHi: 'नॉर्थ वैली',
+        area: 1200,
+        areaUnit: 'sqyd',
+        details: [{ label: 'Zoning', value: 'Agricultural', labelHi: 'ज़ोनिंग', valueHi: 'कृषि', key: true }],
+        nearby: [{ place: 'Town centre', placeHi: 'शहर का केंद्र', distance: '7 km' }],
+      },
+    });
+    assert.equal(res.status, 200);
+    const detail = await call('GET', `/api/properties/${property.slug}`, { admin: false });
+    assert.equal(detail.data.titleHi, 'रिवरसाइड प्लॉट 12');
+    assert.equal(detail.data.descriptionHi, 'पहला पैराग्राफ़');
+    assert.equal(detail.data.areaUnit, 'sqyd');
+    assert.equal(detail.data.details[0].valueHi, 'कृषि');
+    assert.equal(detail.data.nearby[0].placeHi, 'शहर का केंद्र');
+    const card = (await call('GET', '/api/properties', { admin: false })).data.items[0];
+    assert.equal(card.locationHi, 'नॉर्थ वैली');
+    const bigha = await call('PUT', `/api/admin/properties/${property.id}`, { body: { areaUnit: 'bigha' } });
+    assert.equal(bigha.data.areaUnit, 'bigha');
+    const bad = await call('PUT', `/api/admin/properties/${property.id}`, { body: { areaUnit: 'furlong' } });
+    assert.equal(bad.status, 400);
+  });
+
+  test('turns pasted coordinates into a location', async () => {
+    const ok = await call('POST', '/api/admin/resolve-location', { body: { input: '28.6129, 77.2295' } });
+    assert.deepEqual(ok.data, { lat: 28.6129, lng: 77.2295 });
+    const none = await call('POST', '/api/admin/resolve-location', { body: { input: 'next to the school' } });
+    assert.equal(none.status, 422);
   });
 
   test('a new private link replaces the old one', async () => {
@@ -263,8 +298,13 @@ describe('enquiries and settings', () => {
   test('saves settings and validates currency', async () => {
     const bad = await call('PUT', '/api/admin/settings', { body: { currency: 'XXQ' } });
     assert.equal(bad.status, 400);
-    const ok = await call('PUT', '/api/admin/settings', { body: { siteName: 'IPA Land', currency: 'aed' } });
+    const fresh = await call('GET', '/api/admin/settings');
+    assert.equal(fresh.data.settings.currency, 'INR', 'defaults to rupees');
+    const ok = await call('PUT', '/api/admin/settings', {
+      body: { siteName: 'IPA Land', currency: 'aed', heroTitleHi: 'ज़मीन और प्रॉपर्टी' },
+    });
     assert.equal(ok.data.settings.currency, 'AED');
+    assert.equal(ok.data.settings.heroTitleHi, 'ज़मीन और प्रॉपर्टी');
     const site = await call('GET', '/api/site', { admin: false });
     assert.equal(site.data.settings.siteName, 'IPA Land');
   });
